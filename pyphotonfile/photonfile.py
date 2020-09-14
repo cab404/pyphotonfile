@@ -304,9 +304,11 @@ class Photon:
             addresses['preview_lowres_header_address'] = f.tell()   # remember position in file to later add the correct address
             f.write(struct.pack('i', self.preview_lowres_resolution_x))
             f.write(struct.pack('i', self.preview_lowres_resolution_y))
-            f.write(struct.pack('i', self.preview_lowres_data_address))
+            offsets['preview_lowres_data_address'] = f.tell()   # remember position in file to later add the correct address
+            f.write(struct.pack('i', 0x0 ))
             f.write(struct.pack('i', self.preview_lowres_data_length))
             f.write(b'\x00' * 4 * 4)
+            addresses['preview_lowres_data_address'] = f.tell()   # remember position in file to later add the correct address
             f.write(self.preview_lowres_data)
             if self.version > 1:
                 addresses['print_properties_address'] = f.tell()    # remember position in file to later add the correct address
