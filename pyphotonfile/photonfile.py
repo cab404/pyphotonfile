@@ -40,6 +40,33 @@ def rle_to_imgarray(data):
     rgb2d = x.reshape((2560,1440))                # data is stored in rows of 2560
     return rgb2d
 
+def encode_image_preview(input: Image):
+    output = bytes()
+    prev = -1
+    count = 0
+    c = 0
+    def flush():
+        nonlocal count, output, prev
+        if count > 1: prev |= 0x0020
+        output += struct.pack("H", prev)
+        if count > 1: output += struct.pack("BB", (count - 1) & 0xFF, (count - 1) >> 8)
+        count = 0
+
+    for y in range(input.height):
+        for x in range(input.width):
+            r, g, b, _ = input.getpixel((x, y))
+            c = (r >> 3 << 11) | (g >> 3 << 6) | (b >> 3)
+            if (prev == c and count < 4096) or prev == -1:
+                count += 1
+                prev = c
+            else:
+                flush()
+                count = 1
+                prev = c
+
+    flush()
+    return output
+
 
 def imgarr_to_rle(imgarr):
     """
@@ -250,6 +277,20 @@ class Photon:
             for level in range(self.layer_levels):
                 layer.append_sublayer(sublayers[level][i])
             self.layers.append(layer)
+
+
+    def set_preview_highres(self, image: Image):
+        self.preview_highres_data = encode_image_preview(image)
+        self.preview_highres_data_length = len(self.preview_highres_data)
+        self.preview_highres_resolution_x = image.width
+        self.preview_highres_resolution_y = image.height
+
+
+    def set_preview_lowres(self, image: Image):
+        self.preview_lowres_data = encode_image_preview(image)
+        self.preview_lowres_data_length = len(self.preview_lowres_data)
+        self.preview_lowres_resolution_x = image.width
+        self.preview_lowres_resolution_y = image.height
 
 
     def write(self, filepath):
